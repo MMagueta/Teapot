@@ -1,0 +1,6 @@
+#+TITLE: The Teapot Language
+
+* About
+
+Why name a language *teapot* you ask? Because I love tea.
+

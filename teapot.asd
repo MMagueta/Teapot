@@ -8,4 +8,5 @@
   :serial t
   :depends-on (#:alexandria #:serapeum #:yacc)
   :components ((:file "package")
+	       (:file "parser")
                (:file "teapot")))

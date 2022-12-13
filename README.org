@@ -1,6 +1,5 @@
-#+TITLE: The Teapot Language
+#+TITLE: The Teapot Programming Language 🫖
 
 * About
 
-Why name a language *teapot* you ask? Because I love tea.
-
+Why name a language *teapot*, you ask? Well, I love tea.

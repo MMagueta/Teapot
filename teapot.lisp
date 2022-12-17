@@ -19,6 +19,9 @@
 (defstruct LiteralT
   (value nil :type (or number string boolean)))
 
+(defstruct QuoteT
+  (value nil :type ))
+
 (defstruct ClosureT
   (var nil :type symbol)
   (expression nil :type ExpressionT)
@@ -26,7 +29,7 @@
 
 (defstruct ApplicationT
   (abstraction nil :type ExpressionT)
-  (argument nil :type ExpressionT))
+  (arguments nil :type list))
 
 (defstruct ConditionT
   (condition nil :type ExpressionT)

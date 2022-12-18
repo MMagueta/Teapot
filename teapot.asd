@@ -8,5 +8,5 @@
   :serial t
   :depends-on (#:alexandria #:serapeum #:parser-combinators #:esrap)
   :components ((:file "package")
-	       (:file "teapot")
+	       (:file "evaluator")
 	       (:file "parser")))

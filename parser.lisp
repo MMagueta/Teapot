@@ -13,19 +13,12 @@ type Expression =
 | EDotList of List<Expression>*Expression
 ||#
 
-
-;; (pchar '(' .>> spaces) >>. many pexpression .>> (spaces >>. pchar ')')
-
-;;; A semantic predicate for filtering out double quotes.
-
 (defun not-doublequote (char)
   (not (eql #\" char)))
 
 (defun not-integer (string)
   (when (find-if-not #'digit-char-p string)
     t))
-
-;;; Utility rules.
 
 (ep:defrule whitespace (ep:+ (or #\space #\tab #\newline))
   (:constant nil))
@@ -34,77 +27,43 @@ type Expression =
 
 (ep:defrule string-char (or (not-doublequote character) (and #\\ #\")))
 
-;;; Here we go: an S-expression is either a list or an atom, with possibly leading whitespace.
-
 (ep:defrule sexp (and (ep:? whitespace)
 		      (or magic list atom))
   (:function second)
   (:lambda (s ep:&bounds start end)
     (list s (cons start end))))
 
-(ep:defrule magic "foobar"
-  (:constant :magic)
-  (:when (eq ep:* :use-magic)))
-
-(ep:defrule list (and #\( sexp (ep:* sexp) (ep:? whitespace) #\))
+(ep:defrule list (and #\( (ep:? sexp) (ep:* sexp) (ep:? whitespace) #\))
   (:destructure (p1 car cdr w p2)
     (declare (ignore p1 p2 w))
-    (cons car cdr)))
+    (cond
+      ((and (eql nil car)
+	    (eql nil cdr)) (list nil (make-listt)))
+      ((not (eql nil car)) (list (cons car cdr) (make-listt :content (cons car cdr)))))))
 
-(ep:defrule atom (or string integer symbol quotation))
+(ep:defrule atom (or quotation string integer symbol))
 
 (ep:defrule string (and #\" (ep:* string-char) #\")
   (:destructure (q1 string q2)
     (declare (ignore q1 q2))
     (make-literalt :value (ep:text string))))
 
-(ep:defrule quotation (and #\' list)
+(ep:defrule quotation (and #\' sexp)
   (:destructure (quotation elem)
     (declare (ignore quotation))
-    (make-literalt :value (ep:text elem))))
+    (print elem)
+    (let ((inner-symbol (caar elem)))
+      (print inner-symbol)
+      (make-symbolt :label (if (listp inner-symbol)
+			       inner-symbol
+			       (string inner-symbol))))))
 
 (ep:defrule integer (ep:+ (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9"))
   (:lambda (list)
-    (make-literalt :value (parse-integer (ep:text list) :radix 10))))
+    (list (parse-integer (ep:text list))
+	  (make-literalt :value (parse-integer (ep:text list) :radix 10)))))
 
 (ep:defrule symbol (not-integer (ep:+ alphanumeric))
-  ;; NOT-INTEGER is not strictly needed because ATOM considers INTEGER before
-  ;; a STRING, we know can accept all sequences of alphanumerics -- we already
-  ;; know it isn't an integer.
   (:lambda (list)
-    (make-variablet :label (intern (ep:text list)))))
-
-;;;; Try these
-
-(ep:parse 'sexp "(FOO123)")
-
-(ep:parse 'sexp "123")
-
-(ep:parse 'sexp "\"foo\"")
-
-(ep:parse 'sexp "  (  1 2  3 (FOO\"foo\"123 )   )")
-
-(ep:parse 'sexp "foobar")
-
-(let ((* :use-magic))
-  (ep:parse 'sexp "foobar"))
-
-(describe-grammar 'sexp)
-
-(trace-rule 'sexp :recursive t)
-
-(ep:parse 'sexp "(foo bar 1 quux)")
-
-(untrace-rule 'sexp :recursive t)
-
-(defparameter *orig* (rule-expression (find-rule 'sexp)))
-
-(change-rule 'sexp '(and (? whitespace) (or list symbol)))
-
-(ep:parse 'sexp "(foo bar quux)")
-
-(ep:parse 'sexp "(foo bar 1 quux)" :junk-allowed t)
-
-(change-rule 'sexp *orig*)
-
-(ep:parse 'sexp "(foo bar 1 quux)" :junk-allowed t)
+    (list (intern (ep:text list)) (make-variablet :label (make-symbol (ep:text list))))))
+  

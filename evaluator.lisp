@@ -1,4 +1,4 @@
-;;;; teapot.lisp
+;;;; evaluator.lisp
 
 (in-package #:teapot)
 
@@ -19,6 +19,12 @@
 (defstruct LiteralT
   (value nil :type (or number string boolean)))
 
+(defstruct SymbolT
+  (label nil :type (or string list)))
+
+(defstruct ListT
+  (content nil :type list))
+
 (defstruct ClosureT
   (var nil :type symbol)
   (expression nil :type ExpressionT)
@@ -37,6 +43,24 @@
   (fun nil :type ExpressionT))
 
 (defparameter *environment* (make-hash-table))
+
+(defmethod eval-with-environment (env (expr LiteralT))
+  (declare (ignorable env))
+  expr)
+
+(defmethod eval-with-environment (env (expr VariableT))
+  (declare (ignorable env))
+  (gethash (variablet-label expr) env))
+
+(defmethod eval-with-environment (env (expr ListT))
+  (let ((first-symbol-list (caaar (listt-content expr))))
+    (cond
+      ((eql '|print| first-symbol-list) (print (caadr (listt-content expr)))))))
+
+(defun eval-teapot (expr)
+  (eval-with-environment *environment* expr))
+
+#||
 
 (defmethod eval-with-environment (env (expr LiteralT))
   (declare (ignorable env))
@@ -66,7 +90,7 @@
 (defmethod eval-with-environment (env (expr ClosureT))
   (declare (ignorable env))
   expr)
-#||
+
 (eval-with-environment *environment*
 		       (make-applicationt :abstraction (make-abstractiont
 							:param 'x

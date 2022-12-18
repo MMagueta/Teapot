@@ -38,32 +38,29 @@ type Expression =
     (declare (ignore p1 p2 w))
     (cond
       ((and (eql nil car)
-	    (eql nil cdr)) (list nil (make-listt)))
-      ((not (eql nil car)) (list (cons car cdr) (make-listt :content (cons car cdr)))))))
+	    (eql nil cdr)) (list nil (make-elist)))
+      ((not (eql nil car)) (list (cons car cdr) (make-elist :content (cons car cdr)))))))
 
 (ep:defrule atom (or quotation string integer symbol))
 
 (ep:defrule string (and #\" (ep:* string-char) #\")
   (:destructure (q1 string q2)
     (declare (ignore q1 q2))
-    (make-literalt :value (ep:text string))))
+    (make-eliteral :value (ep:text string))))
 
 (ep:defrule quotation (and #\' sexp)
   (:destructure (quotation elem)
     (declare (ignore quotation))
-    (print elem)
     (let ((inner-symbol (caar elem)))
-      (print inner-symbol)
-      (make-symbolt :label (if (listp inner-symbol)
+      (make-esymbol :label (if (listp inner-symbol)
 			       inner-symbol
 			       (string inner-symbol))))))
 
 (ep:defrule integer (ep:+ (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9"))
   (:lambda (list)
     (list (parse-integer (ep:text list))
-	  (make-literalt :value (parse-integer (ep:text list) :radix 10)))))
+	  (make-eliteral :value (parse-integer (ep:text list) :radix 10)))))
 
 (ep:defrule symbol (not-integer (ep:+ alphanumeric))
   (:lambda (list)
-    (list (intern (ep:text list)) (make-variablet :label (make-symbol (ep:text list))))))
-  
+    (list (intern (ep:text list)) (make-evariable :label (make-symbol (ep:text list))))))

@@ -2,60 +2,37 @@
 
 (in-package #:teapot)
 
-(deftype ExpressionT ()
-  `(or AbstractionT VariableT LiteralT ApplicationT ArithmeticT null))
-
-(defstruct ArithmeticT
-  (operation nil :type symbol)
-  (parameters nil :type list))
-
-(defstruct AbstractionT
-  (param nil :type symbol)
-  (body nil :type ExpressionT))
-
-(defstruct VariableT
+(defstruct EVariable
   (label nil :type symbol))
 
-(defstruct LiteralT
+(defstruct ELiteral
   (value nil :type (or number string boolean)))
 
-(defstruct SymbolT
+(defstruct ESymbol
   (label nil :type (or string list)))
 
-(defstruct ListT
+(defstruct EList
   (content nil :type list))
 
-(defstruct ClosureT
-  (var nil :type symbol)
-  (expression nil :type ExpressionT)
-  (environment (make-hash-table) :type hash-table))
-
-(defstruct ApplicationT
-  (abstraction nil :type ExpressionT)
-  (arguments nil :type list))
-
-(defstruct ConditionT
-  (condition nil :type ExpressionT)
-  (then nil :type ExpressionT)
-  (else nil :type ExpressionT))
-
-(defstruct NativeT
-  (fun nil :type ExpressionT))
+(defstruct Expression
+  (value nil :type (or symbol string boolean list))
+  (struct nil :type (or symbol string boolean list))
+  (position nil :type list))
 
 (defparameter *environment* (make-hash-table))
 
-(defmethod eval-with-environment (env (expr LiteralT))
+(defmethod eval-with-environment (env (expr ELiteral))
   (declare (ignorable env))
   expr)
 
-(defmethod eval-with-environment (env (expr VariableT))
+(defmethod eval-with-environment (env (expr EVariable))
   (declare (ignorable env))
-  (gethash (variablet-label expr) env))
+  (gethash (evariable-label expr) env))
 
-(defmethod eval-with-environment (env (expr ListT))
-  (let ((first-symbol-list (caaar (listt-content expr))))
+(defmethod eval-with-environment (env (expr EList))
+  (let ((first-symbol-list (caaar (elist-content expr))))
     (cond
-      ((eql '|print| first-symbol-list) (print (caadr (listt-content expr)))))))
+      ((eql '|print| first-symbol-list) (print (caadr (elist-content expr)))))))
 
 (defun eval-teapot (expr)
   (eval-with-environment *environment* expr))

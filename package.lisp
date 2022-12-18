@@ -3,4 +3,6 @@
 (defpackage #:teapot
   (:use #:cl)
   (:local-nicknames (:al :alexandria)
-		    (:sp :serapeum)))
+		    (:sp :serapeum)
+		    (:pc :parser-combinators)
+		    (:ep :esrap)))

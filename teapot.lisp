@@ -19,9 +19,6 @@
 (defstruct LiteralT
   (value nil :type (or number string boolean)))
 
-(defstruct QuoteT
-  (value nil :type ))
-
 (defstruct ClosureT
   (var nil :type symbol)
   (expression nil :type ExpressionT)
@@ -69,9 +66,11 @@
 (defmethod eval-with-environment (env (expr ClosureT))
   (declare (ignorable env))
   expr)
-
+#||
 (eval-with-environment *environment*
 		       (make-applicationt :abstraction (make-abstractiont
 							:param 'x
 							:body (make-variablet :label 'x))
-					  :argument (make-literalt :value 123)))
+					  :arguments (list (make-literalt :value 123))))
+
+||#

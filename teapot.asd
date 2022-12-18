@@ -6,7 +6,7 @@
   :license  "Specify license here"
   :version "0.0.1"
   :serial t
-  :depends-on (#:alexandria #:serapeum #:lexer #:yacc)
+  :depends-on (#:alexandria #:serapeum #:parser-combinators #:esrap)
   :components ((:file "package")
 	       (:file "teapot")
 	       (:file "parser")))

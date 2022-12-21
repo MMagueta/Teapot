@@ -28,7 +28,7 @@ type Expression =
 (ep:defrule string-char (or (not-doublequote character) (and #\\ #\")))
 
 (ep:defrule sexp (and (ep:? whitespace)
-		      (or magic list atom))
+		      (or list atom))
   (:function second)
   (:lambda (s ep:&bounds start end)
     (list s (cons start end))))
@@ -61,6 +61,6 @@ type Expression =
     (list (parse-integer (ep:text list))
 	  (make-eliteral :value (parse-integer (ep:text list) :radix 10)))))
 
-(ep:defrule symbol (not-integer (ep:+ alphanumeric))
+(ep:defrule symbol (or (not-integer (ep:+ alphanumeric)) #\+ #\-)
   (:lambda (list)
     (list (intern (ep:text list)) (make-evariable :label (make-symbol (ep:text list))))))

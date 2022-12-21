@@ -14,6 +14,9 @@
 (defstruct EList
   (content nil :type list))
 
+(defstruct ENative
+  (operation nil :type function))
+
 (defstruct Expression
   (value nil :type (or symbol string boolean list))
   (struct nil :type (or symbol string boolean list))
@@ -27,51 +30,41 @@
 
 (defmethod eval-with-environment (env (expr EVariable))
   (declare (ignorable env))
-  (gethash (evariable-label expr) env))
+  (let ((result (gethash (evariable-label expr) env)))
+    (if result
+	result
+	(error "Unbound variable"))))
 
 (defmethod eval-with-environment (env (expr EList))
-  (let ((first-symbol-list (caaar (elist-content expr))))
-    (cond
-      ((eql '|print| first-symbol-list) (print (caadr (elist-content expr)))))))
+  (let* ((content (mapcar (lambda (x) (second (al:flatten x)))
+			  (elist-content expr)))
+	 (first-symbol-list (car content)))
+    (if (evariable-p first-symbol-list)
+	(let ((symbol-in-env (intern (string (gethash (evariable-label first-symbol-list) env)))))
+	  (print (evariable-label first-symbol-list))
+	  (cond
+	    ((enative-p symbol-in-env) (funcall (enative-operation symbol-in-env)
+						(cdr (mapcar (lambda (x) (second (al:flatten x)))
+							     (elist-content expr)))))
+	    (t (error "Invalid symbol invocation.")))))))
 
 (defun eval-teapot (expr)
   (eval-with-environment *environment* expr))
 
-#||
+(defun prelude ()
+  (setf (gethash (evariable-label (cadar (ep:parse 'sexp "print"))) *environment*)
+	(teapot-print))
+  (setf (gethash (evariable-label (cadar (ep:parse 'sexp "+"))) *environment*)
+	(make-enative :operation #'+))
+  (setf (gethash (evariable-label (cadar (ep:parse 'sexp "-"))) *environment*)
+	(make-enative :operation #'-)))
 
-(defmethod eval-with-environment (env (expr LiteralT))
-  (declare (ignorable env))
-  expr)
+(defun teapot-print ()
+  (labels ((validate-print (content) (if (= (length content) 1)
+					 (print content)
+					 (error "This function accepts only one parameter."))))
+    (make-enative :operation #'validate-print)))
 
-(defmethod eval-with-environment (env (expr VariableT))
-  (multiple-value-bind (value ok) (gethash (variablet-label expr) env)
-    (if ok
-	value
-	(error 'simple-error :format-arguments (list (variablet-label expr))
-	                     :format-control "Unbound variable ~s."))))
-
-(defmethod eval-with-environment (env (expr AbstractionT))
-  (make-closuret :var (abstractiont-param expr)
-		 :expression (abstractiont-body expr)
-		 :environment (al:copy-hash-table env)))
-
-(defmethod eval-with-environment (env (expr ApplicationT))
-  (let ((arg (eval-with-environment env (applicationt-argument expr)))
-	(f   (eval-with-environment env (applicationt-abstraction expr))))
-    (etypecase f
-      (ClosureT
-       (let ((closedEnv (sp:merge-tables env (closuret-environment f))))
-	 (setf (gethash (closuret-var f) closedEnv) arg)
-	 (eval-with-environment closedEnv (closuret-expression f)))))))
-
-(defmethod eval-with-environment (env (expr ClosureT))
-  (declare (ignorable env))
-  expr)
-
-(eval-with-environment *environment*
-		       (make-applicationt :abstraction (make-abstractiont
-							:param 'x
-							:body (make-variablet :label 'x))
-					  :arguments (list (make-literalt :value 123))))
-
-||#
+(defun interpret (file)
+  (prelude)
+  (eval-teapot (cadar (ep:parse 'sexp (uiop:read-file-string file)))))

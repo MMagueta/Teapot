@@ -28,7 +28,7 @@ type Expression =
 (ep:defrule string-char (or (not-doublequote character) (and #\\ #\")))
 
 (ep:defrule sexp (and (ep:? whitespace)
-		      (or list atom))
+                      (or list atom))
   (:function second)
   (:lambda (s ep:&bounds start end)
     (list s (cons start end))))
@@ -38,7 +38,7 @@ type Expression =
     (declare (ignore p1 p2 w))
     (cond
       ((and (eql nil car)
-	    (eql nil cdr)) (list nil (make-elist)))
+            (eql nil cdr)) (list nil (make-elist)))
       ((not (eql nil car)) (list (cons car cdr) (make-elist :content (cons car cdr)))))))
 
 (ep:defrule atom (or quotation string integer symbol))
@@ -53,13 +53,13 @@ type Expression =
     (declare (ignore quotation))
     (let ((inner-symbol (caar elem)))
       (make-esymbol :label (if (listp inner-symbol)
-			       inner-symbol
-			       (string inner-symbol))))))
+                               inner-symbol
+                               (string inner-symbol))))))
 
 (ep:defrule integer (ep:+ (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9"))
   (:lambda (list)
     (list (parse-integer (ep:text list))
-	  (make-eliteral :value (parse-integer (ep:text list) :radix 10)))))
+          (make-eliteral :value (parse-integer (ep:text list) :radix 10)))))
 
 (ep:defrule symbol (or (not-integer (ep:+ alphanumeric)) #\+ #\-)
   (:lambda (list)

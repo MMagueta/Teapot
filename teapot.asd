@@ -8,8 +8,8 @@
   :serial t
   :depends-on (#:alexandria #:serapeum #:parser-combinators #:esrap)
   :components ((:file "package")
-	       (:file "evaluator")
-	       (:file "parser"))
+               (:file "evaluator")
+               (:file "parser"))
   :build-operation program-op
   :build-pathname "teapot"
   :entry-point "teapot::interpret")

@@ -63,4 +63,4 @@ type Expression =
 
 (ep:defrule symbol (or (not-integer (ep:+ alphanumeric)) #\+ #\-)
   (:lambda (list)
-    (list (intern (ep:text list)) (make-evariable :label (make-symbol (ep:text list))))))
+    (list (intern (ep:text list)) (make-evariable :label (intern (ep:text list))))))

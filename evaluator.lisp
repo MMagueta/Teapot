@@ -40,8 +40,8 @@
 			  (elist-content expr)))
 	 (first-symbol-list (car content)))
     (if (evariable-p first-symbol-list)
-	(let ((symbol-in-env (intern (string (gethash (evariable-label first-symbol-list) env)))))
-	  (print (evariable-label first-symbol-list))
+	(let ((symbol-in-env (gethash (evariable-label first-symbol-list) env)))
+	  ;; (print (evariable-label first-symbol-list))
 	  (cond
 	    ((enative-p symbol-in-env) (funcall (enative-operation symbol-in-env)
 						(cdr (mapcar (lambda (x) (second (al:flatten x)))
@@ -52,19 +52,33 @@
   (eval-with-environment *environment* expr))
 
 (defun prelude ()
-  (setf (gethash (evariable-label (cadar (ep:parse 'sexp "print"))) *environment*)
+  (setf (gethash '|print| *environment*)
 	(teapot-print))
-  (setf (gethash (evariable-label (cadar (ep:parse 'sexp "+"))) *environment*)
-	(make-enative :operation #'+))
-  (setf (gethash (evariable-label (cadar (ep:parse 'sexp "-"))) *environment*)
-	(make-enative :operation #'-)))
+  (setf (gethash '|+| *environment*)
+	(teapot-arithmetic #'+ 0))
+  (setf (gethash '|-| *environment*)
+	(teapot-arithmetic #'- 0)))
 
 (defun teapot-print ()
-  (labels ((validate-print (content) (if (= (length content) 1)
-					 (print content)
-					 (error "This function accepts only one parameter."))))
+  (labels ((validate-print (content)
+	     (if (= (length content) 1)
+		 (print content)
+		 (error "This function accepts only one parameter."))))
     (make-enative :operation #'validate-print)))
 
-(defun interpret (file)
-  (prelude)
-  (eval-teapot (cadar (ep:parse 'sexp (uiop:read-file-string file)))))
+(defun teapot-arithmetic (op init-val)
+  (labels ((calc-arith (content)
+	     (make-eliteral
+	      :value (reduce
+		      (lambda (acc elem)
+			(funcall op acc elem))
+		      content
+		      :initial-value init-val
+		      :key #'eliteral-value))))
+    (make-enative :operation #'calc-arith)))
+
+(defun interpret ()
+  (let ((file (car (uiop:command-line-arguments))))
+    (prelude)
+    (eval-teapot (cadar (ep:parse 'sexp (uiop:read-file-string file))))))
+  

@@ -20,6 +20,11 @@ type Expression =
   (when (find-if-not #'digit-char-p string)
     t))
 
+(defstruct posdata
+  (data nil)
+  (start 0 :type (integer 0))
+  (end 0 :type (integer 0)))
+
 (ep:defrule whitespace (ep:+ (or #\space #\tab #\newline))
   (:constant nil))
 
@@ -28,18 +33,21 @@ type Expression =
 (ep:defrule string-char (or (not-doublequote character) (and #\\ #\")))
 
 (ep:defrule sexp (and (ep:? whitespace)
-                      (or list atom))
+                      (or list atom)
+                      (ep:? whitespace))
   (:function second)
   (:lambda (s ep:&bounds start end)
-    (list s (cons start end))))
+    (make-posdata :data s :start start :end end)))
 
 (ep:defrule list (and #\( (ep:? sexp) (ep:* sexp) (ep:? whitespace) #\))
   (:destructure (p1 car cdr w p2)
     (declare (ignore p1 p2 w))
-    (cond
-      ((and (eql nil car)
-            (eql nil cdr)) (list nil (make-elist)))
-      ((not (eql nil car)) (list (cons car cdr) (make-elist :content (cons car cdr)))))))
+    (if (or car cdr)
+        (make-elist :content (cons car cdr))
+        (make-elist :content nil))))
+
+
+
 
 (ep:defrule atom (or quotation string integer symbol))
 
@@ -51,16 +59,12 @@ type Expression =
 (ep:defrule quotation (and #\' sexp)
   (:destructure (quotation elem)
     (declare (ignore quotation))
-    (let ((inner-symbol (caar elem)))
-      (make-esymbol :label (if (listp inner-symbol)
-                               inner-symbol
-                               (string inner-symbol))))))
+    (make-esymbol :label elem)))
 
 (ep:defrule integer (ep:+ (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9"))
   (:lambda (list)
-    (list (parse-integer (ep:text list))
-          (make-eliteral :value (parse-integer (ep:text list) :radix 10)))))
+    (make-eliteral :value (parse-integer (ep:text list) :radix 10))))
 
 (ep:defrule symbol (or (not-integer (ep:+ alphanumeric)) #\+ #\-)
   (:lambda (list)
-    (list (intern (ep:text list)) (make-evariable :label (intern (ep:text list))))))
+    (make-evariable :label (intern (ep:text list) "TEAPOT"))))

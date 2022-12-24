@@ -39,20 +39,27 @@
         (error "Unbound variable"))))
 ||#
 
+(defmethod eval-with-environment (env (expr ESymbol))
+  (let ((result (gethash (evariable-label expr) env)))
+    (or result
+        (error "Unbound variable"))))
 
 (defmethod eval-with-environment (env (expr EList))
   (let* ((content (elist-content expr))
          (first (first content)))
-    (let ((evaluated (eval-with-environment env first)))
+    (let ((evaluated (handler-case (eval-with-environment env first)
+		       (error () first))))
       (etypecase evaluated
         (eliteral (error "Cannot funcall a literal"))
+	(esymbol (error "Cannot funcall a symbol"))
+	(efunction (assert (= (length (rest content))
+			      (length (efunction-args content))))
+	 (let* ((evaluated-args (mapcar (lambda (x) (eval-with-environment env (posdata-data x)))
+					(rest content)))
+		(new-env (sp:merge-tables env (efunction-local-env evaluated))))))
         (enative (funcall (efunction-operation evaluated)
-                          (rest (mapcar
-                                 (lambda (x) (eval-with-environment env (posdata-data x)))
-                                 content)))
-                         (error "Function not found"))))))
-
-
+                          (mapcar (lambda (x) (eval-with-environment env (posdata-data x)))
+				  (rest content))))))))
 
 (defun eval-teapot (expr)
   (eval-with-environment *environment* expr))

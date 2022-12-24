@@ -9,7 +9,7 @@
   (value nil :type (or number string boolean)))
 
 (defstruct ESymbol
-  (label nil :type (or string list)))
+  (label nil :type (or symbol list)))
 
 (defstruct EList
   (content nil :type list))
@@ -44,22 +44,32 @@
     (or result
         (error "Unbound variable"))))
 
+
 (defmethod eval-with-environment (env (expr EList))
   (let* ((content (elist-content expr))
          (first (first content)))
     (let ((evaluated (handler-case (eval-with-environment env first)
-		       (error () first))))
+                       (error () first))))
       (etypecase evaluated
         (eliteral (error "Cannot funcall a literal"))
-	(esymbol (error "Cannot funcall a symbol"))
-	(efunction (assert (= (length (rest content))
-			      (length (efunction-args content))))
-	 (let* ((evaluated-args (mapcar (lambda (x) (eval-with-environment env (posdata-data x)))
-					(rest content)))
-		(new-env (sp:merge-tables env (efunction-local-env evaluated))))))
-        (enative (funcall (efunction-operation evaluated)
+        (esymbol (error "Cannot funcall a symbol"))
+        (efunction (assert (= (length (rest content))
+                              (length (efunction-args evaluated))))
+         (let* ((evaluated-args (mapcar (lambda (x) (eval-with-environment env (posdata-data x)))
+                                        (rest content)))
+                (new-env (loop :with new-env* := (make-hash-table)
+                               :for val :in evaluated-args
+                               :for arg-name :in (efunction-args evaluated)
+                               :do (setf (gethash arg-name new-env*) val)
+                               :finally (return (sp:merge-tables new-env* (efunction-local-env evaluated))))))
+           (eval-with-environment new-env (efunction-body evaluated))))
+        (enative (funcall (enative-operation evaluated)
                           (mapcar (lambda (x) (eval-with-environment env (posdata-data x)))
-				  (rest content))))))))
+                                  (rest content))))))))
+
+
+
+
 
 (defun eval-teapot (expr)
   (eval-with-environment *environment* expr))
@@ -89,6 +99,19 @@
                       :initial-value init-val
                       :key #'eliteral-value))))
     (make-enative :operation #'calc-arith)))
+
+
+(defparameter *test-function*
+  (make-elist :content
+              (list (make-efunction :args '(|x|)
+                                    :body (list 'teapot::|+|
+                                                (make-eliteral :value 1)
+                                                (make-esymbol :label "x")))
+                    (make-eliteral :value 2))))
+
+;(defun repl ())
+  ;(ep:parse 'sexp (read-line)))
+
 
 (defun interpret ()
   (let ((file (car (uiop:command-line-arguments))))

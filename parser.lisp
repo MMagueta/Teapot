@@ -59,7 +59,20 @@ type Expression =
 (ep:defrule quotation (and #\' sexp)
   (:destructure (quotation elem)
     (declare (ignore quotation))
-    (make-esymbol :label elem)))
+    (let ((data (posdata-data elem)))
+      (etypecase data
+        (eliteral elem)
+        (esymbol (make-posdata :data (make-elist :content
+                                                 (list (make-esymbol :label '|quote|)
+                                                       data))
+                               :start (- (posdata-start elem) 1)
+                               :end (posdata-end elem)))
+        (elist (make-posdata :data (make-elist :content
+                                               (cons (make-esymbol :label '|quote|)
+                                                     (elist-content data)))
+                             :start (- (posdata-start elem) 1)
+                             :end (posdata-end elem)))))))
+
 
 (ep:defrule integer (ep:+ (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9"))
   (:lambda (list)
@@ -67,4 +80,4 @@ type Expression =
 
 (ep:defrule symbol (or (not-integer (ep:+ alphanumeric)) #\+ #\-)
   (:lambda (list)
-    (make-evariable :label (intern (ep:text list) "TEAPOT"))))
+    (make-esymbol :label (intern (ep:text list) "TEAPOT"))))
